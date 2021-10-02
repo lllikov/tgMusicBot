@@ -15,7 +15,7 @@ dp = Dispatcher(bot)
 async def send_music(message: types.Message):
     command = re.search(r"\/\w*", message.text)
     from_user = message['from']['id']
-    if from_user == 2043806344:
+    if from_user == config['owner_id']:
         attr_1 = re.split(r"\/\w* ", message.text)
         attr_2 = attr_1[1].split()
         href = attr_2[0]
