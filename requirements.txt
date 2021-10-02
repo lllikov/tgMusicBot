@@ -1,0 +1,7 @@
+requests==2.22.0
+aiogram==2.15
+json_config==2.0.1
+urllib3==1.25.8
+soundcloud==0.5.0
+soundcloud_lib==0.5.4
+sclib==1.0.0
