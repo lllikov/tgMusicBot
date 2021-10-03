@@ -11,11 +11,24 @@ sc = Soundcloud()
 bot = Bot(token=config['bot_token'])
 dp = Dispatcher(bot)
 
+
+@dp.message_handler(commands=['start'])
+async def send_start(message: types.Message):
+    return await message.answer(
+        """
+        👨🏿‍💻 dev. @lllikooov
+        🔗 /track [link for him]
+        🔗 /playlist [link for him]
+        
+        """
+    )
+
+
 @dp.message_handler(commands=['track', 'playlist'])
 async def send_music(message: types.Message):
     command = re.search(r"\/\w*", message.text)
     from_user = message['from']['id']
-    if from_user == config['owner_id']:
+    if from_user in config['users']:
         attr_1 = re.split(r"\/\w* ", message.text)
         attr_2 = attr_1[1].split()
         href = attr_2[0]
@@ -41,13 +54,15 @@ async def send_music(message: types.Message):
                 for filename in fs:
                     with open(filename, 'rb') as fp:
                         await bot.send_document(message.chat.id, fp)
-                        asyncio.sleep(2)
+                        asyncio.sleep(2000)
                         fp.close()
                     os.remove(filename)
                 m = await bot.send_message(message.chat.id, "🤯 Это все. Приятного прослушивания")
             if fs == 0:
                 await bot.edit_message_text('😢 Проблемки с запросом...', message.chat.id, m.message_id)
-
+    
+    if from_user not in config['users']:
+        await message.answer('💀 Доступ запрещен.')
 
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
