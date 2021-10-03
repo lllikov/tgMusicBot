@@ -14,6 +14,7 @@ class Soundcloud:
             track = await self.api.resolve(t_link)
             assert type(track) is Track
             filename = f'{track.artist} - {track.title}.mp3'
+            filename = self.validName(filename=filename)
             print(f'-. {filename} downloaded! saving to file.')
             with open(filename, "wb+") as fp:
                 await track.write_mp3_to(fp)
@@ -23,18 +24,41 @@ class Soundcloud:
             return 0
 
     async def getPlaylist(self, p_link: str):
-        try:
-            print(f'-. downloading playlist starting now.')
-            playlist = await self.api.resolve(p_link)
-            filenames = []
-            assert type(playlist) is Playlist
-            for track in playlist.tracks:
-                filename = f'{track.artist} - {track.title}.mp3'
-                filenames.append(filename)
-                print(f'_. {filename} downloaded! saving to file.')
-                with open(filename, "wb+") as fp:
-                    await track.write_mp3_to(fp)
-            return filenames
-        except: 
-            print('error')
-            return 0
+        # try:
+        print(f'-. downloading playlist starting now.')
+        playlist = await self.api.resolve(p_link)
+        filenames = []
+        assert type(playlist) is Playlist
+        for track in playlist.tracks:
+            filename = f'{track.artist} - {track.title}.mp3'
+            filename = self.validName(filename=filename)
+            filenames.append(filename)
+            print(f'_. {filename} downloaded! saving to file.')
+            with open(filename, "wb+") as fp:
+                await track.write_mp3_to(fp)
+        return filenames
+        # except: 
+        #     print('error')
+        #     return 0  
+
+
+    def validName(self, filename):
+        bad_symbols = [
+            "/",
+            ":",
+            "*",
+            "?",
+            '"',
+            "<",
+            ">",
+            "|",
+            "+"
+        ]
+        fn = list(filename) 
+        for sym in fn:
+            if sym in bad_symbols:
+                i = fn.index(sym)
+                fn[i] = ""
+        filename = ''.join(fn)
+        return filename
+          
