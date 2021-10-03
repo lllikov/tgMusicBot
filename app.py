@@ -1,4 +1,7 @@
 import json
+from urllib import parse
+
+from aiogram.types.message import ParseMode
 from modules.sc import Soundcloud
 from modules.soundcloud_searcher import SoundcloudSearcher
 from modules.utils import *
@@ -52,13 +55,10 @@ async def playlist_searching(callback_query: types.CallbackQuery):
 async def track_search(message: types.Message):
     state = dp.current_state(user = message.from_user.id)
     req = message.text
-    print(req)
     res = sc_searcher.request_tracks(req)
-    print(res)
     json_res = json.loads(res)
     kb_creator = kb.track_create(json_res)
-    keyboard = InlineKeyboardMarkup(row_width = 5).add(kb_creator[1])
-    await message.answer(kb_creator[0], reply_markup=keyboard)
+    await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
 
@@ -68,9 +68,8 @@ async def playlist_search(message: types.Message):
     req = message.text
     res = sc_searcher.request_playlists(req)
     json_res = json.loads(res)
-    kb_creator = kb.track_create(json_res)
-    keyboard = InlineKeyboardMarkup(row_width = 5).add(kb_creator[1])
-    await message.answer(kb_creator[0], reply_markup=keyboard)
+    kb_creator = kb.playlist_create(json_res)
+    await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
 @dp.message_handler(commands=['start'])
