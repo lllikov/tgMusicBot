@@ -38,8 +38,30 @@
 # splitted = a.split("https://api.soundcloud.com/")
 # print(splitted[1])
 
-from modules.soundcloud_searcher import SoundcloudSearcher
+# from modules.soundcloud_searcher import SoundcloudSearcher
 
-sc = SoundcloudSearcher()
-a = sc.request_tracks("дора")
-print(a)
+# sc = SoundcloudSearcher()
+# a = sc.request_tracks("дора")
+# print(a)
+
+
+
+
+# import json
+# from modules.kb_creator import KeyboardCreator
+# from modules.soundcloud_searcher import SoundcloudSearcher
+# sc_s = SoundcloudSearcher()
+# res=  sc_s.request_tracks(track_name ='дора')
+
+# kb = KeyboardCreator()
+# a = kb.track_create(json.loads(res))
+
+# print(a[1])
+
+import asyncio
+from modules.sc import Soundcloud
+
+sc = Soundcloud()
+
+if __name__ == "__main__":
+    asyncio.run(sc.getPlaylist("https://api.soundcloud.com/playlists/1325745214"))

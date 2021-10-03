@@ -85,7 +85,7 @@ async def search_handler(callback_query: types.CallbackQuery):
                 with open(path, "rb") as fp:
                     await bot.send_document(callback_query.from_user.id, fp)
                     fp.close()
-                    asyncio.sleep(2000)
+                    await asyncio.sleep(2000)
                 os.remove(path)
         if f == 0:
             await bot.send_message(callback_query.from_user.id, mes['error'])    
