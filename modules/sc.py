@@ -1,14 +1,14 @@
 import json_config
 from sclib.asyncio import SoundcloudAPI, Track, Playlist
 
-config = json_config.connect('config.json')
+config = json_config.connect('./config/config.json')
 
 class Soundcloud: 
     def __init__(self):
         self.api = SoundcloudAPI(config['sc_client_id'])
 
 
-    async def getTrack(self, t_link):
+    async def getTrack(self, t_link: str):
         try:
             print(f'_. downloading track starting now.')
             track = await self.api.resolve(t_link)
@@ -22,7 +22,7 @@ class Soundcloud:
             print('error')
             return 0
 
-    async def getPlaylist(self, p_link):
+    async def getPlaylist(self, p_link: str):
         try:
             print(f'-. downloading playlist starting now.')
             playlist = await self.api.resolve(p_link)

@@ -1,23 +1,26 @@
-from sc import Soundcloud
-from utils import *
+import json
+from modules.sc import Soundcloud
+from modules.soundcloud_searcher import SoundcloudSearcher
+from modules.utils import *
+from modules.kb_creator import KeyboardCreator
 import asyncio, json_config, logging, re, os
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.middlewares.logging import LoggingMiddleware
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 logging.basicConfig(level=logging.INFO)
 
 
-config = json_config.connect('config.json')
-mes = json_config.connect('messages.json')
+config = json_config.connect('config/config.json')
+mes = json_config.connect('config/messages.json')
 sc = Soundcloud()
+sc_searcher = SoundcloudSearcher()
+kb = KeyboardCreator()
 
 bot = Bot(token=config['bot_token'])
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
 
-tstate = 1
-pstate = 2
 
 playlist_button = InlineKeyboardButton(mes['pBut'], callback_data="playlist_button")
 track_button = InlineKeyboardButton(mes['tBut'], callback_data="track_button")
@@ -31,34 +34,44 @@ async def searching(message: types.Message):
 async def track_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
-    await bot.send_message(chat_id, mes['search_track'])
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[tstate])
+    await state.set_state(BotStates.all()[2])
+    await bot.send_message(chat_id, mes['search_track'])
     return await callback_query.answer()
 
 @dp.callback_query_handler(lambda c: c.data == 'playlist_button')
 async def playlist_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
-    await bot.send_message(chat_id, mes['search_playlist'])
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[pstate])
+    await state.set_state(BotStates.all()[0])
+    await bot.send_message(chat_id, mes['search_playlist'])
     return await callback_query.answer()
 
 @dp.message_handler(state=BotStates.TRACK_STATE)
 async def track_search(message: types.Message):
-    pass
+    state = dp.current_state(user = message.from_user.id)
+    req = message.text
+    print(req)
+    res = sc_searcher.request_tracks(req)
+    print(res)
+    json_res = json.loads(res)
+    kb_creator = kb.track_create(json_res)
+    keyboard = InlineKeyboardMarkup(row_width = 5).add(kb_creator[1])
+    await message.answer(kb_creator[0], reply_markup=keyboard)
+    return await state.reset_state()
 
 
 @dp.message_handler(state=BotStates.PLAYLIST_STATE)
 async def playlist_search(message: types.Message):
-    pass
-
-# @dp.message_handler(state=BotStates.SEARCH_STATE)
-# async def second_test_state_case_met(message: types.Message):
-#     state = dp.current_state(user=message.from_user.id)
-    
-#     # return await state.reset_state()
+    state = dp.current_state(user = message.from_user.id)
+    req = message.text
+    res = sc_searcher.request_playlists(req)
+    json_res = json.loads(res)
+    kb_creator = kb.track_create(json_res)
+    keyboard = InlineKeyboardMarkup(row_width = 5).add(kb_creator[1])
+    await message.answer(kb_creator[0], reply_markup=keyboard)
+    return await state.reset_state()
 
 @dp.message_handler(commands=['start'])
 async def send_start(message: types.Message):
