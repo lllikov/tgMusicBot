@@ -49,11 +49,13 @@ class SoundcloudSearcher:
                 title = response['title']
                 username = response['user']['username']
                 track_count = response['track_count']
+                link = response['permalink_url']
                 info.append(
                     {
                         "username": username,
                         "title": title,
                         "track_count": track_count,
+                        "link": link,
                         "uri": uri
                     }
                 )
