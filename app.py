@@ -72,6 +72,35 @@ async def playlist_search(message: types.Message):
     await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
+@dp.callback_query_handler(lambda c: "/" in c.data)
+async def search_handler(callback_query: types.CallbackQuery):
+    raw_data = callback_query.data
+    processed_data = raw_data.split("/")
+    print(processed_data)
+    href = "https://api.soundcloud.com"
+    if processed_data[0] == "playlists":
+        f = await sc.getPlaylist(f'{href}/playlists/{processed_data[1]}')
+        if f != 0:
+            for path in f:
+                with open(path, "rb") as fp:
+                    await bot.send_document(callback_query.from_user.id, fp)
+                    fp.close()
+                    asyncio.sleep(2000)
+                os.remove(path)
+        if f == 0:
+            await bot.send_message(callback_query.from_user.id, mes['error'])    
+        return await callback_query.answer()
+    if processed_data[0] == "tracks":
+        f = await sc.getTrack(f'{href}/tracks/{processed_data[1]}')
+        if f != 0:
+            with open(f, "rb") as fp:
+                await bot.send_document(callback_query.from_user.id, fp)
+                fp.close()
+            os.remove(f)
+        if f == 0:
+            await bot.send_message(callback_query.from_user.id, mes['error'])    
+        return await callback_query.answer(text="")
+
 @dp.message_handler(commands=['start'])
 async def send_start(message: types.Message):
     return await message.answer(mes['start'])
