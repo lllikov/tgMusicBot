@@ -6,6 +6,7 @@ from modules.sc import Soundcloud
 from modules.soundcloud_searcher import SoundcloudSearcher
 from modules.utils import *
 from modules.kb_creator import KeyboardCreator
+import modules.url_decoder as url_decode
 import asyncio, json_config, logging, re, os
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -23,6 +24,17 @@ kb = KeyboardCreator()
 bot = Bot(token=config['bot_token'])
 dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
+
+
+# bot states
+# ['decode_state', 'playlist_dl_state', 'playlist_state', 'search_state', 'track_dl_state', 'track_state']
+
+deS = 0
+pDlS = 1
+pS = 2
+ss = 3
+tDlS = 4
+tS = 5
 
 
 playlist_button = InlineKeyboardButton(mes['pBut'], callback_data="playlist_button")
@@ -49,14 +61,21 @@ async def send_start(message: types.Message):
 async def set_state_track_dl(message: types.Message):
     state = dp.current_state(user = message.from_user.id)
     await message.answer(mes['track_dl'])
-    return await state.set_state(BotStates.all()[3])
+    return await state.set_state(BotStates.all()[tDlS])
 
 
 @dp.message_handler(commands=['playlist', 'p', 'п'])
 async def set_state_playlist_dl(message: types.Message):
     state = dp.current_state(user = message.from_user.id)
     await message.answer(mes['playlist_dl'])
-    return await state.set_state(BotStates.all()[0])
+    return await state.set_state(BotStates.all()[pDlS])
+
+
+@dp.message_handler(commands=['urldecode', 'url', 'u'])
+async def decode_start(message: types.Message):
+    state = dp.current_state()
+    await message.answer(mes['decode_start'])
+    return await state.set_state(BotStates.all()[deS])
 
 
 @dp.callback_query_handler(lambda c: c.data == 'track_button')
@@ -64,7 +83,7 @@ async def track_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[4])
+    await state.set_state(BotStates.all()[tS])
     await bot.send_message(chat_id, mes['search_track'])
     return await callback_query.answer()
 
@@ -74,7 +93,7 @@ async def playlist_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[1])
+    await state.set_state(BotStates.all()[pS])
     await bot.send_message(chat_id, mes['search_playlist'])
     return await callback_query.answer()
 
@@ -141,6 +160,19 @@ async def playlist_dl(message: types.Message):
         await message.answer(mes['error'])
         return await state.reset_state()
 
+@dp.message_handler(state = BotStates.DECODE_STATE)
+async def decode(message: types.Message):
+    state = dp.current_state()
+    link_to_decode = message.text
+    link_decoded = url_decode.url_decode(link_to_decode)
+    if link_decoded != 0:
+        await message.answer(mes['decode_finish'])
+        await message.answer(link_decoded, disable_web_page_preview=True)
+    if link_decoded == 0:
+        await message.answer(mes['decode_error'])
+    return await state.reset_state()
+
+
 @dp.callback_query_handler(lambda c: "/" in c.data)
 async def search_handler(callback_query: types.CallbackQuery):
     raw_data = callback_query.data
@@ -169,6 +201,7 @@ async def search_handler(callback_query: types.CallbackQuery):
         if f == 0:
             await bot.send_message(callback_query.from_user.id, mes['error'])    
         return await callback_query.answer(text="")
+
 
 
 
@@ -227,6 +260,9 @@ async def button_handler(message: types.Message):
     if message.text == mes["c_button"]:
         await bot.delete_message(message.chat.id, message.message_id)
         return await set_state_playlist_dl(message)
+    if message.text == mes["d_button"]:
+        await bot.delete_message(message.chat.id, message.message_id)
+        return await decode_start(message)
 
 
 
