@@ -5,7 +5,10 @@ headers = {
 }
 
 def url_decode(href: str):
-    r = requests.get(href, headers = headers)
-    raw_url = r.url
-    link_to_track = raw_url.split("?")[0]
-    return link_to_track
+    try:
+        r = requests.get(href, headers = headers)
+        raw_url = r.url
+        link_to_track = raw_url.split("?")[0]
+        return link_to_track
+    except: 
+        return 0
