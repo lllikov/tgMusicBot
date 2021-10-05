@@ -1,4 +1,4 @@
-import json_config
+import json_config, os
 from sclib.asyncio import SoundcloudAPI, Track, Playlist
 
 config = json_config.connect('./config/config.json')
@@ -16,30 +16,39 @@ class Soundcloud:
             filename = f'{track.artist} - {track.title}.mp3'
             filename = self.validName(filename=filename)
             print(f'-. {filename} downloaded! saving to file.')
-            with open(filename, "wb+") as fp:
-                await track.write_mp3_to(fp)
-            return filename
+            try:
+                with open(filename, "wb+") as fp:
+                    await track.write_mp3_to(fp)
+                return filename
+            except:
+                print("error writing")
+                os.remove(filename)
+                return 1
         except:
             print('error')
             return 0
 
     async def getPlaylist(self, p_link: str):
-        # try:
-        print(f'-. downloading playlist starting now.')
-        playlist = await self.api.resolve(p_link)
-        filenames = []
-        assert type(playlist) is Playlist
-        for track in playlist.tracks:
-            filename = f'{track.artist} - {track.title}.mp3'
-            filename = self.validName(filename=filename)
-            filenames.append(filename)
-            print(f'_. {filename} downloaded! saving to file.')
-            with open(filename, "wb+") as fp:
-                await track.write_mp3_to(fp)
-        return filenames
-        # except: 
-        #     print('error')
-        #     return 0  
+        try:
+            print(f'-. downloading playlist starting now.')
+            playlist = await self.api.resolve(p_link)
+            filenames = []
+            assert type(playlist) is Playlist
+            for track in playlist.tracks:
+                filename = f'{track.artist} - {track.title}.mp3'    
+                filename = self.validName(filename=filename)
+                filenames.append(filename)
+                print(f'_. {filename} downloaded! saving to file.')
+                try:
+                    with open(filename, "wb+") as fp:
+                        await track.write_mp3_to(fp)
+                except: 
+                    print("error on writing")
+                    del filenames[-1]
+            return filenames
+        except: 
+            print('error')
+            return 0  
 
 
     def validName(self, filename):
@@ -52,7 +61,8 @@ class Soundcloud:
             "<",
             ">",
             "|",
-            "+"
+            "+",
+            "!"
         ]
         fn = list(filename) 
         for sym in fn:
