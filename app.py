@@ -31,7 +31,33 @@ select_search = InlineKeyboardMarkup(row = 2).add(playlist_button, track_button)
 
 @dp.message_handler(commands=['search', 's', 'поиск', 'п'])
 async def searching(message: types.Message):
-    return await message.answer(mes['search_1'], reply_markup=select_search)
+    if message.from_user.id in config['users']:
+        return await message.answer(mes['search_1'], reply_markup=select_search)
+    else: return await message.answer(mes['not_user'])
+
+
+@dp.message_handler(commands=['start'])
+async def send_start(message: types.Message):
+    if message.from_user.id in config['users']:
+        state = dp.current_state(user = message.from_user.id)
+        await state.reset_state()
+        return await message.answer(mes['start'], reply_markup=kb.start_keyboard())
+    else: return await message.answer(mes['not_user'])
+
+
+@dp.message_handler(commands=['track', 't', 'т'])
+async def set_state_track_dl(message: types.Message):
+    state = dp.current_state(user = message.from_user.id)
+    await message.answer(mes['track_dl'])
+    return await state.set_state(BotStates.all()[3])
+
+
+@dp.message_handler(commands=['playlist', 'p', 'п'])
+async def set_state_playlist_dl(message: types.Message):
+    state = dp.current_state(user = message.from_user.id)
+    await message.answer(mes['playlist_dl'])
+    return await state.set_state(BotStates.all()[0])
+
 
 @dp.callback_query_handler(lambda c: c.data == 'track_button')
 async def track_searching(callback_query: types.CallbackQuery):
@@ -42,6 +68,7 @@ async def track_searching(callback_query: types.CallbackQuery):
     await bot.send_message(chat_id, mes['search_track'])
     return await callback_query.answer()
 
+
 @dp.callback_query_handler(lambda c: c.data == 'playlist_button')
 async def playlist_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
@@ -50,6 +77,7 @@ async def playlist_searching(callback_query: types.CallbackQuery):
     await state.set_state(BotStates.all()[0])
     await bot.send_message(chat_id, mes['search_playlist'])
     return await callback_query.answer()
+
 
 @dp.message_handler(state=BotStates.TRACK_STATE)
 async def track_search(message: types.Message):
@@ -72,6 +100,33 @@ async def playlist_search(message: types.Message):
     await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
+
+@dp.message_handler(state = BotStates.TRACK_DL_STATE)
+async def track_dl(message: types.Message):
+    href = message.text
+    track = await sc.getTrack(href)
+    if track != 0:
+        with open(track, "rb") as f:
+            await bot.send_document(message.chat.id, f)
+            f.close()
+        os.remove(track)
+    if track == 0:
+        return await message.answer(mes['error'])
+    
+
+@dp.message_handler(state = BotStates.PLAYLIST_DL_STATE)
+async def playlist_dl(message: types.Message):
+    href = message.text
+    playlist = await sc.getPlaylist(href)
+    if playlist != 0:
+        for track in playlist:
+            with open(track, "rb") as f:
+                await bot.send_document(message.chat.id, f)
+                f.close()
+            os.remove(track)
+    if playlist == 0:
+        return await message.answer(mes['error'])
+
 @dp.callback_query_handler(lambda c: "/" in c.data)
 async def search_handler(callback_query: types.CallbackQuery):
     raw_data = callback_query.data
@@ -85,7 +140,7 @@ async def search_handler(callback_query: types.CallbackQuery):
                 with open(path, "rb") as fp:
                     await bot.send_document(callback_query.from_user.id, fp)
                     fp.close()
-                    await asyncio.sleep(2000)
+                    await asyncio.sleep(2)
                 os.remove(path)
         if f == 0:
             await bot.send_message(callback_query.from_user.id, mes['error'])    
@@ -101,50 +156,64 @@ async def search_handler(callback_query: types.CallbackQuery):
             await bot.send_message(callback_query.from_user.id, mes['error'])    
         return await callback_query.answer(text="")
 
-@dp.message_handler(commands=['start'])
-async def send_start(message: types.Message):
-    return await message.answer(mes['start'])
 
 
-@dp.message_handler(commands=['track', 'playlist'])
-async def send_music(message: types.Message):
-    command = re.search(r"\/\w*", message.text)
-    from_user = message['from']['id']
-    if from_user in config['users']:
-        attr_1 = re.split(r"\/\w* ", message.text)
-        attr_2 = attr_1[1].split()
-        href = attr_2[0]
+
+
+# @dp.message_handler(commands=['track', 'playlist'])
+# async def send_music(message: types.Message):
+#     command = re.search(r"\/\w*", message.text)
+#     from_user = message['from']['id']
+#     if from_user in config['users']:
+#         attr_1 = re.split(r"\/\w* ", message.text)
+#         attr_2 = attr_1[1].split()
+#         href = attr_2[0]
         
-        if command.group(0) == "/track":
-            m = await bot.send_message(message.chat.id, mes['searching_track'])
-            f = await sc.getTrack(href)
-            if f != 0:
-                await bot.edit_message_text(mes['saving_track'], message.chat.id, m.message_id)
-                with open(f, 'rb') as fp:
-                    await bot.edit_message_text(mes['sending_track'], message.chat.id, m.message_id)
-                    await bot.send_document(message.chat.id, fp)
-                    fp.close()
-                os.remove(f)
-            if f == 0: 
-                await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
+#         if command.group(0) == "/track":
+#             m = await bot.send_message(message.chat.id, mes['searching_track'])
+#             f = await sc.getTrack(href)
+#             if f != 0:
+#                 await bot.edit_message_text(mes['saving_track'], message.chat.id, m.message_id)
+#                 with open(f, 'rb') as fp:
+#                     await bot.edit_message_text(mes['sending_track'], message.chat.id, m.message_id)
+#                     await bot.send_document(message.chat.id, fp)
+#                     fp.close()
+#                 os.remove(f)
+#             if f == 0: 
+#                 await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
         
-        if command.group(0) == "/playlist":
-            m = await bot.send_message(message.chat.id, mes['searcging_playlist'])
-            fs = await sc.getPlaylist(href)
-            if fs != 0:
-                await bot.edit_message_text(mes['saving'], message.chat.id, m.message_id)
-                for filename in fs:
-                    with open(filename, 'rb') as fp:
-                        await bot.send_document(message.chat.id, fp)
-                        asyncio.sleep(2000)
-                        fp.close()
-                    os.remove(filename)
-                m = await bot.send_message(message.chat.id, mes['after_playlist'])
-            if fs == 0:
-                await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
+#         if command.group(0) == "/playlist":
+#             m = await bot.send_message(message.chat.id, mes['searcging_playlist'])
+#             fs = await sc.getPlaylist(href)
+#             if fs != 0:
+#                 await bot.edit_message_text(mes['saving'], message.chat.id, m.message_id)
+#                 for filename in fs:
+#                     with open(filename, 'rb') as fp:
+#                         await bot.send_document(message.chat.id, fp)
+#                         asyncio.sleep(2000)
+#                         fp.close()
+#                     os.remove(filename)
+#                 m = await bot.send_message(message.chat.id, mes['after_playlist'])
+#             if fs == 0:
+#                 await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
     
-    if from_user not in config['users']:
-        await message.answer(mes['not_user'])
+#     if from_user not in config['users']:
+#         await message.answer(mes['not_user'])
+
+
+
+@dp.message_handler()
+async def button_handler(message: types.Message):
+    if message.text == mes["a_button"]:
+        await bot.delete_message(message.chat.id, message.message_id)
+        return await searching(message)
+    if message.text == mes["b_button"]:
+        await bot.delete_message(message.chat.id, message.message_id)
+        return await set_state_track_dl(message)
+    if message.text == mes["c_button"]:
+        await bot.delete_message(message.chat.id, message.message_id)
+        return await set_state_playlist_dl(message)
+
 
 
 async def shutdown(dispatcher: Dispatcher):
