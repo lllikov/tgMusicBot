@@ -51,7 +51,7 @@ class KeyboardCreator():
         a = KeyboardButton(mes['a_button'])
         b = KeyboardButton(mes['b_button'])
         c = KeyboardButton(mes['c_button'])
-        kb = ReplyKeyboardMarkup([a,b,c])
+        kb = ReplyKeyboardMarkup(resize_keyboard=True).add(a, b, c)
         return kb
         
 
