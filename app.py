@@ -64,7 +64,7 @@ async def track_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[2])
+    await state.set_state(BotStates.all()[4])
     await bot.send_message(chat_id, mes['search_track'])
     return await callback_query.answer()
 
@@ -74,7 +74,7 @@ async def playlist_searching(callback_query: types.CallbackQuery):
     from_user = callback_query['from']['id']
     chat_id = callback_query['message']['chat']['id']
     state = dp.current_state(user = from_user)
-    await state.set_state(BotStates.all()[0])
+    await state.set_state(BotStates.all()[1])
     await bot.send_message(chat_id, mes['search_playlist'])
     return await callback_query.answer()
 
@@ -103,20 +103,30 @@ async def playlist_search(message: types.Message):
 
 @dp.message_handler(state = BotStates.TRACK_DL_STATE)
 async def track_dl(message: types.Message):
+    state = dp.current_state()
     href = message.text
+    m = await message.answer(mes['request_message'])
     track = await sc.getTrack(href)
-    if track != 0:
+    if track != 0 and track != 1:
         with open(track, "rb") as f:
             await bot.send_document(message.chat.id, f)
             f.close()
         os.remove(track)
+        await bot.delete_message(message.chat.id, m.message_id)
+        return await state.reset_state()
     if track == 0:
-        return await message.answer(mes['error'])
+        await message.answer(mes['error'])
+        return await state.reset_state()
+    if track == 1:
+        await message.answer(mes['error_writing'])
+        return await state.reset_state()
     
 
 @dp.message_handler(state = BotStates.PLAYLIST_DL_STATE)
 async def playlist_dl(message: types.Message):
+    state = dp.current_state()
     href = message.text
+    m = await message.answer(mes['request_message'])
     playlist = await sc.getPlaylist(href)
     if playlist != 0:
         for track in playlist:
@@ -124,8 +134,12 @@ async def playlist_dl(message: types.Message):
                 await bot.send_document(message.chat.id, f)
                 f.close()
             os.remove(track)
+        await bot.delete_message(message.chat.id, m.message_id)
+        await message.answer(mes['playlist_end'])
+        return await state.reset_state()
     if playlist == 0:
-        return await message.answer(mes['error'])
+        await message.answer(mes['error'])
+        return await state.reset_state()
 
 @dp.callback_query_handler(lambda c: "/" in c.data)
 async def search_handler(callback_query: types.CallbackQuery):
