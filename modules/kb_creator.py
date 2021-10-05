@@ -1,6 +1,7 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import json
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, KeyboardButton, ReplyKeyboardMarkup
+import json, json_config
 
+mes = json_config.connect('./config/messages.json')
 
 class KeyboardCreator():
     def __init__(self) -> None:
@@ -44,3 +45,13 @@ class KeyboardCreator():
             keyboard.insert(but)
             k += 1
         return text, keyboard
+
+
+    def start_keyboard(self):
+        a = KeyboardButton(mes['a_button'])
+        b = KeyboardButton(mes['b_button'])
+        c = KeyboardButton(mes['c_button'])
+        kb = ReplyKeyboardMarkup([a,b,c])
+        return kb
+        
+
