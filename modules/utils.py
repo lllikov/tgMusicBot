@@ -1,4 +1,5 @@
 from aiogram.utils.helper import Helper, HelperMode, ListItem
+from future.utils import listitems
 
 class BotStates(Helper):
     mode = HelperMode.snake_case
@@ -8,6 +9,7 @@ class BotStates(Helper):
     PLAYLIST_STATE = ListItem()
     TRACK_DL_STATE = ListItem()
     PLAYLIST_DL_STATE = ListItem()
+    DECODE_STATE = ListItem()
     
 print(BotStates.all())
-# ['playlist_dl_state', 'playlist_state', 'search_state', 'track_dl_state', 'track_state']
+# ['decode_state', 'playlist_dl_state', 'playlist_state', 'search_state', 'track_dl_state', 'track_state']
