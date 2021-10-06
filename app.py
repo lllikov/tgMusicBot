@@ -1,12 +1,10 @@
 import json
 from urllib import parse
-
+from modules.db import BotDatabase
 from aiogram.types.message import ParseMode
 from modules.sc import Soundcloud
 from modules.soundcloud_searcher import SoundcloudSearcher
 from modules.utils import *
-from modules.kb_creator import KeyboardCreator
-import modules.url_decoder as url_decode
 import asyncio, json_config, logging, re, os
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -19,7 +17,8 @@ config = json_config.connect('config/config.json')
 mes = json_config.connect('config/messages.json')
 sc = Soundcloud()
 sc_searcher = SoundcloudSearcher()
-kb = KeyboardCreator()
+utils = BotUtils()
+dp = BotDatabase()
 
 bot = Bot(token=config['bot_token'])
 dp = Dispatcher(bot, storage=MemoryStorage())
@@ -53,7 +52,7 @@ async def send_start(message: types.Message):
     if message.from_user.id in config['users']:
         state = dp.current_state(user = message.from_user.id)
         await state.reset_state()
-        return await message.answer(mes['start'], reply_markup=kb.start_keyboard())
+        return await message.answer(mes['start'], reply_markup=utils.start_keyboard())
     else: return await message.answer(mes['not_user'])
 
 
@@ -104,7 +103,7 @@ async def track_search(message: types.Message):
     req = message.text
     res = sc_searcher.request_tracks(req)
     json_res = json.loads(res)
-    kb_creator = kb.track_create(json_res)
+    kb_creator = utils.track_create(json_res)
     await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
@@ -115,7 +114,7 @@ async def playlist_search(message: types.Message):
     req = message.text
     res = sc_searcher.request_playlists(req)
     json_res = json.loads(res)
-    kb_creator = kb.playlist_create(json_res)
+    kb_creator = utils.playlist_create(json_res)
     await message.answer(kb_creator[0], reply_markup=kb_creator[1])
     return await state.reset_state()
 
@@ -124,6 +123,9 @@ async def playlist_search(message: types.Message):
 async def track_dl(message: types.Message):
     state = dp.current_state()
     href = message.text
+    link_template = "https://soundcloud.app.goo.gl/"
+    if link_template in href:
+        href = utils.url_decode(href)
     m = await message.answer(mes['request_message'])
     track = await sc.getTrack(href)
     if track != 0 and track != 1:
@@ -145,6 +147,9 @@ async def track_dl(message: types.Message):
 async def playlist_dl(message: types.Message):
     state = dp.current_state()
     href = message.text
+    link_template = "https://soundcloud.app.goo.gl/"
+    if link_template in href:
+        href = utils.url_decode(href)
     m = await message.answer(mes['request_message'])
     playlist = await sc.getPlaylist(href)
     if playlist != 0:
@@ -159,18 +164,6 @@ async def playlist_dl(message: types.Message):
     if playlist == 0:
         await message.answer(mes['error'])
         return await state.reset_state()
-
-@dp.message_handler(state = BotStates.DECODE_STATE)
-async def decode(message: types.Message):
-    state = dp.current_state()
-    link_to_decode = message.text
-    link_decoded = url_decode.url_decode(link_to_decode)
-    if link_decoded != 0:
-        await message.answer(mes['decode_finish'])
-        await message.answer(link_decoded, disable_web_page_preview=True)
-    if link_decoded == 0:
-        await message.answer(mes['decode_error'])
-    return await state.reset_state()
 
 
 @dp.callback_query_handler(lambda c: "/" in c.data)
@@ -203,52 +196,6 @@ async def search_handler(callback_query: types.CallbackQuery):
         return await callback_query.answer(text="")
 
 
-
-
-
-
-# @dp.message_handler(commands=['track', 'playlist'])
-# async def send_music(message: types.Message):
-#     command = re.search(r"\/\w*", message.text)
-#     from_user = message['from']['id']
-#     if from_user in config['users']:
-#         attr_1 = re.split(r"\/\w* ", message.text)
-#         attr_2 = attr_1[1].split()
-#         href = attr_2[0]
-        
-#         if command.group(0) == "/track":
-#             m = await bot.send_message(message.chat.id, mes['searching_track'])
-#             f = await sc.getTrack(href)
-#             if f != 0:
-#                 await bot.edit_message_text(mes['saving_track'], message.chat.id, m.message_id)
-#                 with open(f, 'rb') as fp:
-#                     await bot.edit_message_text(mes['sending_track'], message.chat.id, m.message_id)
-#                     await bot.send_document(message.chat.id, fp)
-#                     fp.close()
-#                 os.remove(f)
-#             if f == 0: 
-#                 await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
-        
-#         if command.group(0) == "/playlist":
-#             m = await bot.send_message(message.chat.id, mes['searcging_playlist'])
-#             fs = await sc.getPlaylist(href)
-#             if fs != 0:
-#                 await bot.edit_message_text(mes['saving'], message.chat.id, m.message_id)
-#                 for filename in fs:
-#                     with open(filename, 'rb') as fp:
-#                         await bot.send_document(message.chat.id, fp)
-#                         asyncio.sleep(2000)
-#                         fp.close()
-#                     os.remove(filename)
-#                 m = await bot.send_message(message.chat.id, mes['after_playlist'])
-#             if fs == 0:
-#                 await bot.edit_message_text(mes['error'], message.chat.id, m.message_id)
-    
-#     if from_user not in config['users']:
-#         await message.answer(mes['not_user'])
-
-
-
 @dp.message_handler()
 async def button_handler(message: types.Message):
     if message.text == mes["a_button"]:
@@ -260,9 +207,6 @@ async def button_handler(message: types.Message):
     if message.text == mes["c_button"]:
         await bot.delete_message(message.chat.id, message.message_id)
         return await set_state_playlist_dl(message)
-    if message.text == mes["d_button"]:
-        await bot.delete_message(message.chat.id, message.message_id)
-        return await decode_start(message)
 
 
 

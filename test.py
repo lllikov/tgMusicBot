@@ -58,10 +58,27 @@
 
 # print(a[1])
 
-import asyncio
-from modules.sc import Soundcloud
+# import asyncio
+# from modules.sc import Soundcloud
 
-sc = Soundcloud()
+# sc = Soundcloud()
 
-if __name__ == "__main__":
-    asyncio.run(sc.getPlaylist("https://api.soundcloud.com/playlists/1325745214"))
+# if __name__ == "__main__":
+#     asyncio.run(sc.getPlaylist("https://api.soundcloud.com/playlists/1325745214"))
+
+# from modules.kb_creator import KeyboardCreator
+
+# kb = KeyboardCreator()
+# kb.start_keyboard()
+
+# from modules.db import BotDatabase
+
+# db = BotDatabase()
+# db.set(123123, "difsogoisdfg")
+# print(db.get(123123))
+# print(db.check(123123))   
+
+text_1 = "soundcloud.app.goo.gl"
+text = "https://soundcloud.app.goo.gl/qNNMy"
+if text_1 not in text:
+    print('qqq')
