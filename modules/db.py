@@ -6,11 +6,10 @@ from mysql.connector import Error
 config = json_config.connect('./config/config.json')
 
 create_table_query = """CREATE TABLE IF NOT EXISTS `userTable` (
-	`id` INT NOT NULL AUTO_INCREMENT,
-	`tg_id` INT(255) NOT NULL,
-	`user_name` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+	`tg_id` INT(255) NOT NULL UNIQUE,
+	`user_name` VARCHAR(255) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
 	`sub_flag` BOOLEAN NOT NULL DEFAULT '0',
-	PRIMARY KEY (`id`)
+	PRIMARY KEY (`tg_id`)
 ) ENGINE=InnoDB;"""
 
 
@@ -29,7 +28,7 @@ class BotDatabase:
     def create_table(self):
         try: 
             self.cursor.execute(create_table_query)
-            print('Создана таблица для базы данных')
+            print('Создана или загружена таблица для базы данных ')
         except Error as e:
             print(e)
 
@@ -42,9 +41,9 @@ class BotDatabase:
             if len(result) != 0:
                 response = json.dumps(
                     {
-                        "id": result[0][1],
-                        "name": result[0][2],
-                        "flag": result[0][3]
+                        "id": result[0][0],
+                        "name": result[0][1],
+                        "flag": result[0][2]
                     }, indent=4, ensure_ascii=False
                 )
                 return response
@@ -53,7 +52,7 @@ class BotDatabase:
                 return 0
         except Error as e:
             print(e)
- 
+            return 0
 
     def set(self, tg_id: int, name: str):
         query = "INSERT INTO userTable (tg_id, user_name) VALUES (%s, %s)"
@@ -71,13 +70,21 @@ class BotDatabase:
         query = "UPDATE userTable SET sub_flag  = 1 WHERE tg_id = {}".format(tg_id)
         try:
             self.cursor.execute(query)
+            self.cnx.commit()
             print("Флаг изменен")
-            return 1
         except Error as e:
             print(e)
-            return 0
+    
+    def deleteFlag(self, tg_id: int):
+        query = "UPDATE userTable SET sub_flag  = 0 WHERE tg_id = {}".format(tg_id)
+        try:
+            self.cursor.execute(query)
+            self.cnx.commit()
+            print("Флаг изменен")
+        except Error as e:
+            print(e)
 
-    def checkFlag(self, tg_id: int):
+    def getFlag(self, tg_id: int):
         query = "SELECT sub_flag FROM userTable WHERE tg_id = {}".format(tg_id)
         try:
             self.cursor.execute(query)
